@@ -1,3 +1,62 @@
+<?php
+
+require_once 'User.php';
+require_once 'FileUserPersist.php';
+require_once 'DatabaseUserPersist.php';
+
+session_start();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $filePersister = new FileUserPersist();
+
+    if (isset($_GET['action']) && 'login' === $_GET['action']) {
+        $user = $filePersister->get(strtolower($_POST['login']));
+        #Если не нашелся пользователь, то просто выдаст ошибку и остановится на этом
+        if (!$user) {
+            die('Неверный логин или пароль');
+        }
+
+        if ($user->getPassword() === sha1($_POST['password'])) {
+            session_start();
+
+            $_SESSION['user'] = $user->getLogin();
+        }
+
+        header('Location: index.php');
+        die();
+    }
+#Передаем логин, пароль и его подтверждение, дату регистрации
+#Если эти данные Не переданы, то с помощью указания типа (string) будут выданы просто пустые строчки
+    $user = new User((string) $_POST['login'], (string) $_POST['password'], (string) $_POST['passwordConfirm']);
+
+    echo $user->getCreatedAt()->format('d.m.Y H:i:s') . '<br>';
+    echo ($user->isPasswordsEquals() ? 'Одинаковые' : 'Разные') . ' пароли';
+
+#Если пароли НЕ одинаковы, то выводим ошибку
+    if (!$user->isPasswordsEquals()) {
+        echo 'Ошибка: пароли не совпадают!';
+        die();
+    }
+#Если пользователь уже зарегистрирован, то есть он есть уже в файле или базе, то выдаст ошибку
+    if ($filePersister->get($_POST['login']) instanceof User) {
+        echo 'Ошибка: пользователь уже существует!';
+        die();
+    }
+
+    $filePersister->save($user);
+
+    header('Location: index.php?registration=success');
+    die();
+
+}
+
+if (isset($_GET['action']) && 'logout' === $_GET['action']) {
+    session_unset();
+    header('Location: index.php');
+    die();
+}
+?>
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -20,36 +79,55 @@
     </div>
 </div>
 <div class="container">
-    <?php if ($_SERVER['REQUEST_METHOD'] === 'GET') { ?>
+    <?php if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        if (isset($_SESSION['user'])) {
+        echo sprintf('Привет, %s', $_SESSION['user']). '<a class "btn btn-success" href="index.php?action=logout">Выйти<a/><br>';
+        }
+        ?>
     <form action="index.php" method="post">
         <div class="mb-3">
-            <label for="FormControlInput1" class="form-label">Имя пользователся</label>
-            <input type="text" class="form-control" name="username" id="FormControlInput1" value="<?php echo $_POST['username'] ?? '' ?>" placeholder = "Придумайте имя пользователя">
+            <label for="FormControlInput1" class="form-label">Логин</label>
+            <input type="text" class="form-control" name="login" id="FormControlInput1"
         </div>
 
         <div class="mb-3">
-            <label for="FormControlInput2" class="form-label">E-mail*</label>
-            <input type="email" class="form-control" name="e-mail" id="FormControlInput2" value="<?php echo $_POST['e-mail'] ?? '' ?>" placeholder = "Введите ваш e-mail" required>
+            <label for="FormControlInput2" class="form-label">Пароль</label>
+            <input type="password" class="form-control" name="password" id="FormControlInput2" placeholder = "Введите пароль" required>
         </div>
 
         <div class="mb-3">
-            <label for="FormControlInput3" class="form-label">Пароль*</label>
-            <input type="password" class="form-control" name="password" id="FormControlInput3" placeholder = "Придумайте пароль" required>
+            <label for="FormControlInput3" class="form-label">Подтверждение пароля</label>
+            <input type="password" class="form-control" name="passwordConfirm" id="FormControlInput3" placeholder = "Подтверждите пароля" required>
         </div>
 
         <div class="mb-3">
             <input type="submit" class="btn btn-primary" value="Зарегистрироваться">
         </div>
     </form>
-        <?php
+    <?php
     }
     ?>
 </div>
 <div class="container">
     <?php
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        echo '<b>username</b> = ' . ($_POST['username'] ?? '') . '<br>';
-        echo 'e-mail = ' . ($_POST['e-mail'] ?? '');
+    if (isset($_GET['registration']) && 'success' === $_GET['registration']) {
+        ?>
+        <form action="index.php?action=login" method="post">
+            <div class="mb-3">
+                <label for="FormControlInput1" class="form-label">Логин</label>
+                <input type="text" class="form-control" name="login" id="FormControlInput1">
+            </div>
+
+            <div class="mb-3">
+                <label for="FormControlInput2" class="form-label">Пароль</label>
+                <input type="password" class="form-control" name="password" id="FormControlInput2" placeholder="Пароль">
+            </div>
+
+            <div class="mb-3">
+                <input type="submit" class="btn btn-primary" value="Войти">
+            </div>
+        </form>
+    <?php
     }
     ?>
 </div>

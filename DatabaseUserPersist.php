@@ -1,10 +1,8 @@
 <?php
-
 declare(strict_types=1);
 
 require_once 'UserPersistInterface.php';
 
-#Реализуем интерфейс UserPersistInterface здесь и в FileUserPersist
 class DatabaseUserPersist implements UserPersistInterface
 {
     private ?\PDO $databaseConnection = null;
@@ -33,7 +31,7 @@ class DatabaseUserPersist implements UserPersistInterface
     {
         if (!$this->databaseConnection) {
             try {
-                $this->databaseConnection = new PDO('mysql:dbname=app;host=127.0.0.1', 'app', '!ChangeMe!');
+                $this->databaseConnection = new PDO('mysql:dbname=user;host=127.0.0.1', 'sqluser', 'mood001');
             } catch (PDOException $e) {
                 die($e->getMessage());
             }

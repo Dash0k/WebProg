@@ -7,7 +7,7 @@ require_once 'DatabaseUserPersist.php';
 session_start();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $filePersister = new FileUserPersist();
+    $filePersister = new DatabaseUserPersist();
 
     if (isset($_GET['action']) && 'login' === $_GET['action']) {
         $user = $filePersister->get(strtolower($_POST['login']));
